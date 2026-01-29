@@ -392,7 +392,7 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
                                             <button onClick={() => onEditRequest(resultImages[selectedImageIndex])} className="bg-slate-900/90 backdrop-blur-md border border-slate-600 hover:bg-blue-600 text-white font-bold text-[11px] px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-2xl transition-all">
                                                 <Icon name="pencil" className="w-4 h-4" /> <span>SỬA ẢNH</span>
                                             </button>
-                                            <a href={resultImages[selectedImageIndex]} download={`NBOX-Utility-${Date.now()}.png`} className="bg-slate-900/90 backdrop-blur-md border border-slate-600 hover:bg-blue-600 text-white font-bold text-[11px] px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-2xl transition-all">
+                                            <a href={resultImages[selectedImageIndex]} download={`Utility-${Date.now()}.png`} className="bg-slate-900/90 backdrop-blur-md border border-slate-600 hover:bg-blue-600 text-white font-bold text-[11px] px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-2xl transition-all">
                                                 <Icon name="download" className="w-4 h-4" /> <span>TẢI VỀ</span>
                                             </a>
                                         </div>
