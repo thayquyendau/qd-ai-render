@@ -13,11 +13,11 @@ const dataUrlToSourceImage = (dataUrl: string): SourceImage | null => {
 
 const ImageViewerModal: React.FC<{ imageUrl: string; onClose: () => void; }> = ({ imageUrl, onClose }) => {
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-slate-900/80 backdrop-blur-lg border border-slate-700/50 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col relative" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col relative" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
-          className="absolute -top-4 -right-4 bg-indigo-600 text-white rounded-full p-2 hover:bg-indigo-700 transition-transform duration-200 hover:scale-110 z-10"
+          className="absolute -top-4 -right-4 bg-brand text-white rounded-full p-2 hover:bg-brand-hover transition-transform duration-200 hover:scale-110 z-10 shadow-lg"
           aria-label="Close"
         >
           <Icon name="x-mark" className="w-6 h-6" />
@@ -132,33 +132,33 @@ const ZoomEditorModal: React.FC<{
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-slate-900/90 border border-slate-700 rounded-xl shadow-2xl w-full h-full flex flex-col relative" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full h-full flex flex-col relative" onClick={e => e.stopPropagation()}>
         {/* Header Controls */}
-        <div className="flex-shrink-0 p-3 bg-slate-800/50 border-b border-slate-700 flex items-center justify-between gap-4">
+        <div className="flex-shrink-0 p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <Icon name="brush" className="w-5 h-5" /> Cỡ Bút:
+            <label className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+              <Icon name="brush" className="w-5 h-5 text-brand" /> Cỡ Bút:
               <input
                 type="range"
                 min="5" max="150"
                 value={brushSize}
                 onChange={(e) => setBrushSize(Number(e.target.value))}
-                className="w-32 accent-indigo-500"
+                className="w-32 accent-brand"
               />
-              <span>{brushSize}px</span>
+              <span className="text-brand font-bold">{brushSize}px</span>
             </label>
-            <button onClick={handleUndo} disabled={drawingHistory.length === 0} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-600 rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={handleUndo} disabled={drawingHistory.length === 0} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
               <Icon name="arrow-uturn-left" className="w-4 h-4" /> Hoàn Tác
             </button>
           </div>
-          <button onClick={handleSave} className="px-4 py-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition">
+          <button onClick={handleSave} className="px-4 py-1.5 text-sm font-bold text-white bg-brand hover:bg-brand-hover rounded-md transition shadow-md">
             Lưu & Đóng
           </button>
         </div>
         {/* Canvas Area */}
-        <div ref={containerRef} className="flex-grow w-full h-full p-4 overflow-auto flex items-center justify-center">
-          <div className="relative w-max h-max">
+        <div ref={containerRef} className="flex-grow w-full h-full p-4 overflow-auto flex items-center justify-center bg-slate-50 shadow-inner">
+          <div className="relative w-max h-max shadow-2xl rounded-lg overflow-hidden border border-slate-200">
             <canvas ref={imageCanvasRef} className="max-w-full max-h-full object-contain block" />
             <canvas
               ref={drawingCanvasRef}
@@ -469,11 +469,11 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Controls & Editor */}
         <div className="lg:col-span-1 flex flex-col gap-6">
-          <div className="bg-slate-800/40 p-6 rounded-xl border border-slate-700/50">
-            <h2 className="text-lg font-semibold text-slate-300 mb-4">1. Ảnh Gốc & Vùng Sửa</h2>
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-700 mb-4">1. Ảnh Gốc & Vùng Sửa</h2>
             {image ? (
-              <div ref={sourceContainerRef} className="relative group w-full">
-                <canvas ref={sourceImageCanvasRef} className="w-full h-auto object-contain rounded-md bg-black/20" />
+              <div ref={sourceContainerRef} className="relative group w-full border border-slate-200 rounded-lg overflow-hidden">
+                <canvas ref={sourceImageCanvasRef} className="w-full h-auto object-contain rounded-md bg-slate-100" />
                 <canvas
                   ref={sourceDrawingCanvasRef}
                   className="absolute inset-0 w-full h-full object-contain cursor-crosshair rounded-md"
@@ -497,9 +497,9 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`text-center bg-slate-800 p-8 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${isDraggingOver ? 'border-indigo-500 bg-slate-700/50' : 'border-slate-600 hover:border-slate-500'}`}
+                  className={`text-center bg-slate-50 p-8 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${isDraggingOver ? 'border-brand bg-brand-light' : 'border-slate-300 hover:border-brand'}`}
                 >
-                  <p className="text-slate-400 mb-2 pointer-events-none">Nhấp hoặc kéo tệp vào đây</p>
+                  <p className="text-slate-600 font-medium mb-2 pointer-events-none">Nhấp hoặc kéo tệp vào đây</p>
                   <p className="text-xs text-slate-500 pointer-events-none">Chọn ảnh đã render, hoặc tải lên ảnh mới</p>
                 </div>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
@@ -509,19 +509,19 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
 
           {image && (
             <>
-              <div className="bg-slate-800/40 p-6 rounded-xl border border-slate-700/50">
-                <h2 className="text-lg font-semibold text-slate-300 mb-4 flex items-center gap-2"><Icon name="brush" className="w-5 h-5" /> 2. Tùy Chỉnh</h2>
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2"><Icon name="brush" className="w-5 h-5 text-brand" /> 2. Tùy Chỉnh</h2>
 
                 <div className="grid grid-cols-2 gap-2 mb-4">
-                  <button onClick={() => setIsZoomed(true)} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-2 rounded transition-colors text-sm flex items-center justify-center gap-1.5">
-                    <Icon name="arrows-pointing-out" className="w-4 h-4" /> Phóng To & Sửa
+                  <button onClick={() => setIsZoomed(true)} className="w-full bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold py-2 px-2 rounded transition-colors text-sm flex items-center justify-center gap-1.5 shadow-sm">
+                    <Icon name="arrows-pointing-out" className="w-4 h-4 text-brand" /> Phóng To & Sửa
                   </button>
-                  <button onClick={handleUndo} disabled={drawingHistory.length === 0} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-2 rounded transition-colors text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Icon name="arrow-uturn-left" className="w-4 h-4" /> Hoàn Tác
+                  <button onClick={handleUndo} disabled={drawingHistory.length === 0} className="w-full bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold py-2 px-2 rounded transition-colors text-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                    <Icon name="arrow-uturn-left" className="w-4 h-4 text-brand" /> Hoàn Tác
                   </button>
                 </div>
 
-                <label htmlFor="brushSize" className="block text-sm font-medium text-slate-400 mb-2">Cỡ Bút: {brushSize}px</label>
+                <label htmlFor="brushSize" className="block text-sm font-medium text-slate-500 mb-2">Cỡ Bút: <span className="text-brand font-bold">{brushSize}px</span></label>
                 <input
                   id="brushSize"
                   type="range"
@@ -529,28 +529,28 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
                   max="100"
                   value={brushSize}
                   onChange={(e) => setBrushSize(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand"
                 />
                 <button
                   onClick={clearMask}
-                  className="w-full mt-4 bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded transition-colors text-sm"
+                  className="w-full mt-4 bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded transition-colors text-sm"
                 >
                   Xóa Vùng Chọn
                 </button>
               </div>
 
-              <div className="bg-slate-800/40 p-6 rounded-xl border border-slate-700/50">
-                <h2 className="text-lg font-semibold text-slate-300 mb-4">3. Mô Tả Chỉnh Sửa</h2>
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-700 mb-4">3. Mô Tả Chỉnh Sửa</h2>
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Ví dụ: thêm một bể bơi, xóa chiếc xe ô tô, đổi tường thành gạch đỏ..."
-                  className="w-full bg-slate-700 p-2 rounded-md h-32 resize-none text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 p-2 rounded-md h-32 resize-none text-sm focus:ring-2 focus:ring-brand focus:border-brand focus:outline-none text-slate-700"
                 />
                 <button
                   onClick={handleGenerate}
                   disabled={isLoading || !image}
-                  className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded transition-colors flex items-center justify-center gap-2 disabled:bg-slate-600 disabled:cursor-not-allowed"
+                  className="w-full mt-4 bg-brand hover:bg-brand-hover text-white font-bold py-3 px-4 rounded transition-colors flex items-center justify-center gap-2 disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed shadow-md shadow-brand/10"
                 >
                   <Icon name="sparkles" className="w-5 h-5" />
                   {isLoading ? 'Đang Chỉnh Sửa...' : 'Tạo Chỉnh Sửa'}
@@ -561,14 +561,14 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
         </div>
 
         {/* Right Column - Result Viewer */}
-        <div className="lg:col-span-2 bg-slate-800/40 p-6 rounded-xl border border-slate-700/50 flex flex-col">
-          <h2 className="text-lg font-semibold text-slate-300 mb-4 text-center">Kết Quả Chỉnh Sửa</h2>
-          <div className="w-full flex-grow bg-black/20 rounded-lg flex items-center justify-center min-h-[400px]">
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+          <h2 className="text-lg font-semibold text-slate-700 mb-4 text-center">Kết Quả Chỉnh Sửa</h2>
+          <div className="w-full flex-grow bg-slate-100 rounded-lg flex items-center justify-center min-h-[400px] border border-slate-200 shadow-inner">
             <div className="relative w-full h-full max-w-full max-h-full flex items-center justify-center group">
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center">
-                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-slate-100"></div>
-                  <p className="mt-3 font-semibold text-sm text-slate-200">Đang tạo...</p>
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-brand"></div>
+                  <p className="mt-3 font-semibold text-sm text-brand">Đang tạo...</p>
                 </div>
               ) : resultImage ? (
                 <>
@@ -576,7 +576,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
                   <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
                     <button
                       onClick={() => setIsResultFullscreen(true)}
-                      className="bg-slate-800/80 backdrop-blur-sm border border-slate-600 hover:bg-indigo-600 text-white font-bold text-xs px-3 py-2 rounded-md transition-colors flex items-center gap-1.5"
+                      className="bg-white/90 backdrop-blur-sm border border-slate-200 hover:bg-brand hover:text-white text-slate-700 font-bold text-xs px-3 py-2 rounded-md transition-colors flex items-center gap-1.5 shadow-md"
                       aria-label="Xem Toàn Màn Hình"
                       title="Xem Toàn Màn Hình"
                     >
@@ -586,7 +586,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
                     <a
                       href={resultImage}
                       download={`faceconst-ai-edited-${Date.now()}.png`}
-                      className="bg-slate-800/80 backdrop-blur-sm border border-slate-600 hover:bg-indigo-600 text-white font-bold text-xs px-3 py-2 rounded-md transition-colors flex items-center gap-1.5"
+                      className="bg-white/90 backdrop-blur-sm border border-slate-200 hover:bg-brand hover:text-white text-slate-700 font-bold text-xs px-3 py-2 rounded-md transition-colors flex items-center gap-1.5 shadow-md"
                       aria-label="Tải ảnh"
                       title="Tải ảnh"
                     >
@@ -595,7 +595,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
                     </a>
                     <button
                       onClick={handleContinueEditing}
-                      className="bg-slate-800/80 backdrop-blur-sm border border-slate-600 hover:bg-indigo-600 text-white font-bold text-xs px-3 py-2 rounded-md transition-colors flex items-center gap-1.5"
+                      className="bg-white/90 backdrop-blur-sm border border-slate-200 hover:bg-brand hover:text-white text-slate-700 font-bold text-xs px-3 py-2 rounded-md transition-colors flex items-center gap-1.5 shadow-md"
                       title="Chỉnh sửa tiếp ảnh này"
                     >
                       <Icon name="arrow-path" className="w-4 h-4" />

@@ -13,9 +13,9 @@ const NavButton: React.FC<{
     <button
         onClick={onClick}
         disabled={disabled}
-        className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-[#3c2a1e] hover:bg-[#4a3528] transition-colors text-slate-200 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+        className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors text-slate-700 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${className}`}
     >
-        <Icon name={icon} className="w-6 h-6" />
+        <Icon name={icon} className="w-6 h-6 text-brand" />
         <span>{label}</span>
     </button>
 );
@@ -108,21 +108,21 @@ export const VirtualTourTab: React.FC = () => {
     const canRedo = historyIndex < history.length - 1;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" style={{ backgroundColor: '#1c110a' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Controls */}
-            <div className="lg:col-span-1 p-6 rounded-xl flex flex-col gap-6">
+            <div className="lg:col-span-1 flex flex-col gap-6">
                 {!sourceImage ? (
-                    <div className="bg-[#2a1a0e] p-6 rounded-xl border border-slate-700/50">
-                        <h2 className="text-lg font-semibold text-slate-300 mb-4">1. Tải Lên Ảnh Tham Quan</h2>
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-700 mb-4">1. Tải Lên Ảnh Tham Quan</h2>
                         <div
-                            className={`relative group border-2 border-dashed rounded-lg p-4 flex items-center justify-center h-48 mb-4 border-slate-600`}
+                            className={`relative group border-2 border-dashed rounded-lg p-4 flex items-center justify-center h-48 mb-4 border-slate-300 bg-slate-50`}
                         >
                             <div className="text-center text-slate-400 pointer-events-none">
-                                <p>Tải lên một ảnh để bắt đầu tham quan ảo.</p>
+                                <p className="font-medium">Tải lên một ảnh để bắt đầu tham quan ảo.</p>
                                 <p className="text-xs">PNG, JPG, WEBP</p>
                             </div>
                         </div>
-                        <label className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded transition-colors text-center cursor-pointer block">
+                        <label className="w-full bg-brand hover:bg-brand-hover text-white font-bold py-3 px-4 rounded transition-colors text-center cursor-pointer block shadow-md shadow-brand/10">
                             Tải Ảnh
                             <input type="file" onChange={(e) => {
                                 const file = e.target.files?.[0];
@@ -142,34 +142,34 @@ export const VirtualTourTab: React.FC = () => {
                         </label>
                     </div>
                 ) : (
-                    <div className="bg-[#2a1a0e] p-6 rounded-xl border border-slate-700/50 space-y-8">
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-8">
                         {/* Movement Degree */}
                         <div>
-                            <h3 className="font-semibold text-slate-300 mb-2">Mức độ di chuyển</h3>
-                            <div className="flex bg-[#3c2a1e] rounded-lg p-1">
+                            <h3 className="font-semibold text-slate-700 mb-2">Mức độ di chuyển</h3>
+                            <div className="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
                                 {([15, 30, 45] as const).map(deg => (
                                     <button
                                         key={deg}
                                         onClick={() => setMovementDegree(deg)}
-                                        className={`flex-1 text-center font-bold py-2 rounded-md transition-colors text-sm ${movementDegree === deg ? 'bg-orange-600 text-white shadow-md' : 'text-slate-300 hover:bg-white/10'}`}
+                                        className={`flex-1 text-center font-bold py-2 rounded-md transition-colors text-sm ${movementDegree === deg ? 'bg-brand text-white shadow-md' : 'text-slate-500 hover:bg-white/50'}`}
                                     >
                                         {deg}°
                                     </button>
                                 ))}
                             </div>
-                            <p className="text-xs text-slate-500 mt-2">Áp dụng cho Pan và Orbit. Zoom có mức độ cố định.</p>
+                            <p className="text-xs text-slate-400 mt-2">Áp dụng cho Pan và Orbit. Zoom có mức độ cố định.</p>
                         </div>
 
                         {/* Pan Controls */}
                         <div className="text-center">
-                            <h3 className="font-semibold text-slate-300 mb-3">Pan (Xoay camera tại chỗ)</h3>
+                            <h3 className="font-semibold text-slate-700 mb-3">Pan (Xoay camera tại chỗ)</h3>
                             <div className="grid grid-cols-3 gap-2 w-4/5 mx-auto">
                                 <div />
                                 <NavButton icon="arrow-up" label="Lên" onClick={() => handleAction('pan-up')} disabled={isLoading} />
                                 <div />
                                 <NavButton icon="arrow-left" label="Trái" onClick={() => handleAction('pan-left')} disabled={isLoading} />
                                 <div className="flex items-center justify-center">
-                                    <div className="w-4 h-4 bg-slate-500 rounded-full animate-pulse"></div>
+                                    <div className="w-4 h-4 bg-brand rounded-full animate-pulse"></div>
                                 </div>
                                 <NavButton icon="arrow-right" label="Phải" onClick={() => handleAction('pan-right')} disabled={isLoading}/>
                                 <div />
@@ -181,14 +181,14 @@ export const VirtualTourTab: React.FC = () => {
                         {/* Orbit and Zoom */}
                         <div className="grid grid-cols-2 gap-6 text-center">
                             <div>
-                                <h3 className="font-semibold text-slate-300 mb-3">Orbit (Quỹ đạo)</h3>
+                                <h3 className="font-semibold text-slate-700 mb-3">Orbit (Quỹ đạo)</h3>
                                 <div className="grid grid-cols-2 gap-2">
                                     <NavButton icon="arrow-uturn-left" label="Quay Trái" onClick={() => handleAction('orbit-left')} disabled={isLoading} />
                                     <NavButton icon="arrow-uturn-right" label="Quay Phải" onClick={() => handleAction('orbit-right')} disabled={isLoading} />
                                 </div>
                             </div>
                             <div>
-                                <h3 className="font-semibold text-slate-300 mb-3">Zoom</h3>
+                                <h3 className="font-semibold text-slate-700 mb-3">Zoom</h3>
                                 <div className="grid grid-cols-2 gap-2">
                                     <NavButton icon="magnifying-glass-plus" label="Gần Lại" onClick={() => handleAction('zoom-in')} disabled={isLoading} />
                                     <NavButton icon="magnifying-glass-minus" label="Ra Xa" onClick={() => handleAction('zoom-out')} disabled={isLoading}/>
@@ -198,12 +198,12 @@ export const VirtualTourTab: React.FC = () => {
 
                         {/* Undo/Redo */}
                         <div className="grid grid-cols-2 gap-3 pt-4">
-                            <button onClick={handleUndo} disabled={!canUndo || isLoading} className="flex items-center justify-center gap-2 p-3 rounded-lg bg-[#5a3a2a] hover:bg-[#6b4a3a] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                <Icon name="arrow-uturn-left" className="w-5 h-5" />
+                            <button onClick={handleUndo} disabled={!canUndo || isLoading} className="flex items-center justify-center gap-2 p-3 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                                <Icon name="arrow-uturn-left" className="w-5 h-5 text-brand" />
                                 Hoàn Tác ({historyIndex})
                             </button>
-                            <button onClick={handleRedo} disabled={!canRedo || isLoading} className="flex items-center justify-center gap-2 p-3 rounded-lg bg-[#5a3a2a] hover:bg-[#6b4a3a] text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                <Icon name="arrow-uturn-right" className="w-5 h-5" />
+                            <button onClick={handleRedo} disabled={!canRedo || isLoading} className="flex items-center justify-center gap-2 p-3 rounded-lg bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                                <Icon name="arrow-uturn-right" className="w-5 h-5 text-brand" />
                                 Làm Lại ({history.length - 1 - historyIndex})
                             </button>
                         </div>
@@ -212,12 +212,12 @@ export const VirtualTourTab: React.FC = () => {
             </div>
 
             {/* Right Column - Image Viewer */}
-            <div className="lg:col-span-2 bg-black/30 p-6 rounded-xl flex items-center justify-center min-h-[60vh] lg:min-h-0">
+            <div className="lg:col-span-2 bg-slate-100 p-6 rounded-xl flex items-center justify-center min-h-[60vh] lg:min-h-0 border border-slate-200 shadow-inner">
                 <div className="w-full h-full flex items-center justify-center relative">
                     {isLoading && (
-                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
-                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-slate-100"></div>
-                            <p className="mt-4 font-semibold text-slate-200">AI đang tạo góc nhìn mới...</p>
+                        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand"></div>
+                            <p className="mt-4 font-semibold text-brand">AI đang tạo góc nhìn mới...</p>
                         </div>
                     )}
                     {currentImage ? (
@@ -227,9 +227,9 @@ export const VirtualTourTab: React.FC = () => {
                             className={`max-w-full max-h-full object-contain rounded-md transition-opacity duration-300 ${isLoading ? 'opacity-50' : 'opacity-100'}`}
                         />
                     ) : (
-                        <div className="text-center text-slate-500">
-                            <p className="text-lg">Khu vực hiển thị ảnh</p>
-                            <p>Tải lên một ảnh để bắt đầu.</p>
+                        <div className="text-center text-slate-400">
+                            <p className="text-lg font-medium">Khu vực hiển thị ảnh</p>
+                            <p className="text-sm">Tải lên một ảnh để bắt đầu.</p>
                         </div>
                     )}
                 </div>

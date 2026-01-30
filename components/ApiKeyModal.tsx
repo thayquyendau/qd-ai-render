@@ -45,21 +45,21 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSuc
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[200] p-4">
-            <div className="bg-[#0f172a] border border-slate-700 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col relative">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[200] p-4">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col relative">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 p-6 border-b border-slate-700/50">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <Icon name="key" className="w-6 h-6 text-yellow-400" /> Nạp API Key Để Sử Dụng
+                <div className="bg-slate-50 p-6 border-b border-slate-100">
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <Icon name="key" className="w-6 h-6 text-yellow-600" /> Nạp API Key Để Sử Dụng
                     </h2>
-                    <p className="text-slate-400 text-sm mt-2">
+                    <p className="text-slate-500 text-sm mt-2">
                         Đây là ứng dụng render chất lượng cao, bạn cần sử dụng Key trả phí (Pay-as-you-go) từ Google AI Studio để có trải nghiệm tốt nhất.
                     </p>
                 </div>
 
                 <div className="p-6 space-y-6">
                     {/* Video Guide */}
-                    <div className="aspect-video w-full bg-black rounded-lg overflow-hidden border border-slate-700">
+                    <div className="aspect-video w-full bg-black rounded-lg overflow-hidden border border-slate-200 shadow-inner">
                         <iframe
                             width="100%"
                             height="100%"
@@ -73,20 +73,20 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSuc
 
                     {/* Input Area */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Google AI Studio API Key</label>
+                        <label className="block text-sm font-medium text-slate-600 mb-2">Google AI Studio API Key</label>
                         <div className="relative">
                             <input
                                 type="password"
                                 value={apiKey}
                                 onChange={(e) => { setApiKey(e.target.value); setError(null); }}
                                 placeholder="Dán API Key của bạn vào đây (AI...)"
-                                className="w-full bg-slate-800 border border-slate-600 rounded-lg py-3 px-4 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all pr-12"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-3 px-4 text-slate-800 focus:ring-2 focus:ring-brand focus:border-brand focus:outline-none transition-all pr-12 shadow-sm"
                             />
-                            <div className="absolute right-3 top-3 text-slate-500">
+                            <div className="absolute right-3 top-3 text-slate-400">
                                 <Icon name="lock-closed" className="w-5 h-5" />
                             </div>
                         </div>
-                        {error && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><Icon name="exclamation-circle" className="w-4 h-4" /> {error}</p>}
+                        {error && <p className="text-red-600 text-sm mt-2 flex items-center gap-1"><Icon name="exclamation-circle" className="w-4 h-4" /> {error}</p>}
                     </div>
 
                     {/* Actions */}
@@ -94,7 +94,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSuc
                         <button
                             onClick={handleSave}
                             disabled={isValidating}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:bg-slate-600 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
+                            className="w-full bg-brand hover:bg-brand-hover text-white font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed shadow-md shadow-brand/10"
                         >
                             {isValidating ? (
                                 <>
@@ -112,7 +112,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, onSuc
                             href="https://aistudio.google.com/app/apikey"
                             target="_blank"
                             rel="noreferrer"
-                            className="text-center text-blue-400 hover:text-blue-300 text-sm transition-colors flex items-center justify-center gap-1"
+                            className="text-center text-brand hover:underline text-sm transition-colors flex items-center justify-center gap-1 font-medium"
                         >
                             Chưa có Key? Lấy ngay tại Google AI Studio <Icon name="arrow-top-right-on-square" className="w-3 h-3" />
                         </a>
