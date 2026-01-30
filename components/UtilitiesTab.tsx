@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Icon } from './icons';
 import { GoogleGenAI } from '@google/genai';
 import type { SourceImage, RenderHistoryItem } from '../types';
-import { generateImages, editImage, analyzeMaterialReplacement, analyze3Dto2DConversion, analyzeUtilityTask, upscaleImage } from '../services/geminiService';
+import { generateImages, editImage, analyzeMaterialReplacement, analyze3Dto2DConversion, analyzeUtilityTask, upscaleImage, analyzeFacadeFromLand } from '../services/geminiService';
 import { VirtualTourTab } from './VirtualTourTab';
 
 // Helper to save to local storage safely with pruning
@@ -112,6 +112,26 @@ const UTILITY_TASKS: UtilityTaskDef[] = [
     { id: 'change_material', name: 'Thay đổi vật liệu', description: 'Thay thế sàn/tường bằng mẫu vật liệu tham chiếu.', icon: 'brush', inputs: 2, inputLabels: ['Ảnh Căn Phòng', 'Ảnh Mẫu Vật Liệu'], service: 'editImageWithReference', requiresMask: true },
     { id: 'virtual_staging', name: 'Dàn dựng (Staging)', description: 'Thêm nội thất vào phòng trống chuẩn phong thủy.', icon: 'sofa', inputs: 1, inputLabels: ['Ảnh Phòng Trống'], service: 'generateImages' },
     { id: '3d_to_2d', name: '3D thành Bản vẽ 2D', description: 'Tạo bản vẽ kỹ thuật CAD từ ảnh render 3D.', icon: 'pencil', inputs: 1, inputLabels: ['Ảnh Render 3D'], service: 'generateImages' },
+    { id: 'facade_from_land', name: 'Dựng mặt tiền từ khu đất', description: 'Thiết kế mặt tiền phù hợp với kích thước và hiện trạng khu đất.', icon: 'map', inputs: 1, inputLabels: ['Ảnh Khu Đất'], service: 'generateImages' },
+];
+
+const HOUSE_TYPES = [
+    'Nhà phố',
+    'Biệt thự',
+    'Nhà mái Thái',
+    'Nhà mái Nhật',
+    'Nhà vườn',
+    'Nhà cấp 4',
+    'Shophouse'
+];
+
+const FACADE_STYLES = [
+    'Hiện đại',
+    'Tân cổ điển',
+    'Cổ điển',
+    'Địa Trung Hải',
+    'Indochine',
+    'Scandinavia'
 ];
 
 const STAGING_CONFIG = [
@@ -137,6 +157,12 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
     const [stagingRoom, setStagingRoom] = useState(STAGING_CONFIG[0].type);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
+    // State for Facade from Land
+    const [floors, setFloors] = useState('');
+    const [selectedHouseType, setSelectedHouseType] = useState('');
+    const [selectedFacadeStyle, setSelectedFacadeStyle] = useState('');
+    const [hasGate, setHasGate] = useState(false);
+
     const sourceCanvasRef = useRef<HTMLCanvasElement>(null);
     const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -146,7 +172,7 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
     }, [task.id]);
 
     useEffect(() => {
-        const skipAnalysis = ['virtual_staging', 'change_material'];
+        const skipAnalysis = ['virtual_staging', 'change_material', 'facade_from_land'];
         if (sourceImage1 && !skipAnalysis.includes(task.id) && !prompt && !isAnalyzing) {
             const run = async () => {
                 setIsAnalyzing(true);
@@ -161,6 +187,30 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
             run();
         }
     }, [sourceImage1, task.id]);
+
+    useEffect(() => {
+        if (task.id === 'facade_from_land' && sourceImage1 && floors && selectedHouseType && selectedFacadeStyle && !isAnalyzing) {
+            const timeoutId = setTimeout(async () => {
+                setIsAnalyzing(true);
+                try {
+                    const enhancedPrompt = await analyzeFacadeFromLand(sourceImage1, {
+                        houseType: selectedHouseType,
+                        style: selectedFacadeStyle,
+                        floors: floors,
+                        hasGate: hasGate
+                    });
+                    setPrompt(enhancedPrompt);
+                } catch (e) {
+                    console.error(e);
+                    // Fallback to basic prompt if AI fails
+                    setPrompt(`Thiết kế mặt tiền ${selectedHouseType} phong cách ${selectedFacadeStyle}, quy mô ${floors} tầng. Phối cảnh 3D chân thực.`);
+                }
+                setIsAnalyzing(false);
+            }, 1000); // 1s debounce
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [sourceImage1, selectedHouseType, selectedFacadeStyle, floors, hasGate, task.id]);
 
     useEffect(() => {
         if (task.id === 'change_material' && sourceImage1 && sourceImage2 && !prompt && !isAnalyzing) {
@@ -327,22 +377,78 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
                                 </div>
                             )}
 
+                            {task.id === 'facade_from_land' && (
+                                <div className="space-y-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                    <div>
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase mb-1 block">Số tầng</label>
+                                        <select value={floors} onChange={(e) => setFloors(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded text-sm focus:ring-1 focus:ring-brand outline-none">
+                                            <option value="">-- Chọn số tầng --</option>
+                                            {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} Tầng</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-bold uppercase mb-1 block">Loại nhà</label>
+                                            <select 
+                                                value={selectedHouseType} 
+                                                onChange={(e) => setSelectedHouseType(e.target.value)}
+                                                className="w-full bg-white border border-slate-200 px-3 py-2 rounded text-sm focus:ring-1 focus:ring-brand outline-none"
+                                            >
+                                                <option value="">Chọn loại nhà...</option>
+                                                {HOUSE_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-slate-500 font-bold uppercase mb-1 block">Phong cách</label>
+                                            <select 
+                                                value={selectedFacadeStyle} 
+                                                onChange={(e) => setSelectedFacadeStyle(e.target.value)}
+                                                className="w-full bg-white border border-slate-200 px-3 py-2 rounded text-sm focus:ring-1 focus:ring-brand outline-none"
+                                            >
+                                                <option value="">Chọn phong cách...</option>
+                                                {FACADE_STYLES.map(style => <option key={style} value={style}>{style}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between bg-white border border-slate-200 px-4 py-3 rounded-lg shadow-sm">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-1.5 rounded-md ${hasGate ? 'bg-brand/10 text-brand' : 'bg-slate-100 text-slate-400'}`}>
+                                                <Icon name="home" className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-700">Có cổng nhà</p>
+                                                <p className="text-[10px] text-slate-400">Thiết kế cổng phù hợp mặt tiền</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => setHasGate(!hasGate)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${hasGate ? 'bg-brand' : 'bg-slate-200'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${hasGate ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             {task.inputs === 2 && <ImageUpload sourceImage={sourceImage2} onImageUpload={setSourceImage2} onRemove={() => {setSourceImage2(null); setPrompt('');}} title={task.inputLabels?.[1]} heightClass="h-32" />}
 
-                            <div className="grid grid-cols-1 gap-2">
-                                <label className="block text-xs font-bold text-brand uppercase mb-2">Tỷ lệ khung hình</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {["original", "1:1", "3:4", "4:3", "9:16", "16:9"].map((ratio) => (
-                                        <button
-                                            key={ratio}
-                                            onClick={() => setAspectRatio(ratio)}
-                                            className={`py-1.5 px-1 rounded text-[11px] font-bold transition-all border ${aspectRatio === ratio ? 'bg-brand shadow-sm shadow-brand/20 text-white' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}
-                                        >
-                                            {ratio === 'original' ? 'MẶC ĐỊNH' : ratio}
-                                        </button>
-                                    ))}
+                            {task.id !== 'facade_from_land' && (
+                                <div className="grid grid-cols-1 gap-2">
+                                    <label className="block text-xs font-bold text-brand uppercase mb-2">Tỷ lệ khung hình</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {["original", "1:1", "3:4", "4:3", "9:16", "16:9"].map((ratio) => (
+                                            <button
+                                                key={ratio}
+                                                onClick={() => setAspectRatio(ratio)}
+                                                className={`py-1.5 px-1 rounded text-[11px] font-bold transition-all border ${aspectRatio === ratio ? 'bg-brand shadow-sm shadow-brand/20 text-white' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}
+                                            >
+                                                {ratio === 'original' ? 'MẶC ĐỊNH' : ratio}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <div className="relative z-0">
                                 <label className="text-xs text-brand font-bold uppercase mb-2 block">Mô tả thiết kế:</label>

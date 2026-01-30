@@ -156,6 +156,43 @@ export const describeInteriorImage = async (sourceImage: SourceImage): Promise<s
   return response.text?.trim() || '';
 };
 
+export const analyzeFacadeFromLand = async (
+  sourceImage: SourceImage,
+  data: { houseType: string; style: string; floors: string; hasGate?: boolean }
+): Promise<string> => {
+  const ai = getGenAI();
+  const engineeredPrompt = `
+    Bạn là một kiến trúc sư chủ trì và chuyên gia Render 3D.
+    DỰ KIẾN XÂY DỰNG:
+    - Loại nhà: ${data.houseType}
+    - Phong cách: ${data.style}
+    - Quy mô: ${data.floors} tầng
+    ${data.hasGate ? '- Yêu cầu đặc biệt: Thiết kế thêm CỔNG NHÀ đẹp, phù hợp với phong cách mặt tiền.' : ''}
+
+    NHIỆM VỤ:
+    1. XÁC ĐỊNH RANH GIỚI TỰ ĐỘNG: Phân tích ảnh hiện trạng để xác định chính xác ranh giới vỉa hè và lề đường phía trước khu đất.
+    2. CHIẾN LƯỢC CĂN LỀ TUYỆT ĐỐI (QUAN TRỌNG NHẤT): 
+       - Nếu ${data.hasGate ? 'có cổng: Phải đặt cổng và hàng rào sát lề đường.' : 'KHÔNG CÓ CỔNG: BẮT BUỘC mặt tiền tầng trệt của ngôi nhà PHẢI ĐẶT SÁT SẠT VÀO LỀ ĐƯỜNG/VỈA HÈ. Tuyệt đối KHÔNG ĐƯỢC để bất kỳ khoảng đất trống, sân cỏ hay bất cứ thứ gì thụt vào phía trước mặt tiền. Ngôi nhà phải mọc lên ngay tại ranh giới bắt đầu của đất.'}
+    3. TỰ ĐỘNG KHỚP TỈ LỆ: AI Render phải tự điều chỉnh kích thước ngôi nhà mới sao cho vừa vặn và chính xác tuyệt đối với khu đất, không bị lệch hay hở ranh giới.
+    4. GIỮ NGUYÊN HIỆN TRẠNG XUNG QUANH: Yêu cầu AI Render phải giữ lại toàn bộ các yếu tố môi trường như: nhà hàng xóm hai bên, cây xanh hiện hữu, con đường phía trước.
+    5. VIẾT PROMPT: Tạo 1 prompt tiếng Việt chi tiết cưỡng chế AI đặt ngôi nhà ${data.houseType} ${data.style} vào đúng vị trí sát vỉa hè. ${data.hasGate ? 'Mô tả cổng nhà sát lề đường.' : 'BẮT BUỘC: Mặt tiền nhà phải dán chặt vào mép vỉa hè, không có sân trước, không có khoảng thụt.'}
+
+    CHỈ TRẢ VỀ CHUỖI VĂN BẢN TIẾNG VIỆT LÀ NỘI DUNG PROMPT HOÀN CHỈNH ĐỂ GỬI CHO AI RENDER.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: {
+      parts: [
+        { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+        { text: engineeredPrompt },
+      ],
+    },
+  });
+
+  return response.text?.trim().replace(/^"(.*)"$/, '$1') || '';
+};
+
 export const generateImages = async (
   sourceImage: SourceImage,
   prompt: string,
