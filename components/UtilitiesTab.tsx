@@ -3,7 +3,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Icon } from './icons';
 import { GoogleGenAI } from '@google/genai';
 import type { SourceImage, RenderHistoryItem } from '../types';
-import { generateImages, editImage, analyzeMaterialReplacement, analyze3Dto2DConversion, analyzeUtilityTask, upscaleImage, analyzeFacadeFromLand } from '../services/geminiService';
+import { generateImages, editImage, analyzeMaterialReplacement, analyze3Dto2DConversion, analyzeUtilityTask, upscaleImage, analyzeFacadeFromLand, analyzeMaterialsForFacade, type MaterialOption } from '../services/geminiService';
 import { VirtualTourTab } from './VirtualTourTab';
 
 // Helper to save to local storage safely with pruning
@@ -125,20 +125,110 @@ const HOUSE_TYPES = [
     'Shophouse'
 ];
 
-const FACADE_STYLES = [
-    'Hiện đại',
-    'Tân cổ điển',
-    'Cổ điển',
-    'Địa Trung Hải',
-    'Indochine',
-    'Scandinavia'
-];
+const HOUSE_TYPE_STYLES_MAPPING: Record<string, string[]> = {
+    'Nhà phố': [
+        'Hiện đại (Modern Style)',
+        'Nhiệt đới Hiện đại (Modern Tropical)',
+        'Tối giản (Minimalism / Japandi)',
+        'Tân cổ điển Hiện đại (Neo-Classic)',
+        'Tối giản bo cong (Minimal Curved / Japandi–Mediterranean Mix)',
+    ],
+    'Biệt thự': [
+        'Hiện đại sang trọng (Luxury Modern)',
+        'Tân cổ điển (Neo-Classic)', 
+        'Địa Trung Hải (Mediterranean)',
+        'Cổ điển (Classic)',
+        'Indochine (Đông Dương)'
+    ],
+    'Nhà mái Thái': [
+        'Hiện đại',
+        'Tân cổ điển',
+        'Truyền thống'
+    ],
+    'Nhà mái Nhật': [
+        'Zen / Tối giản',
+        'Hiện đại',
+        'Truyền thống'
+    ],
+    'Nhà vườn': [
+        'Nhiệt đới (Tropical)',
+        'Farmhouse',
+        'Hiện đại gẫn gũi thiên nhiên'
+    ],
+    'Nhà cấp 4': [
+        'Hiện đại',
+        'Mái thái',
+        'Bắc Âu'
+    ],
+    'Shophouse': [
+        'Hiện đại thương mại',
+        'Tân cổ điển',
+        'Art Deco'
+    ]
+};
+
+interface ShapeOption {
+    id: string;
+    name: string;
+    description: string;
+    context: string;
+    group?: string;
+}
+
+const SHAPE_MAPPING: Record<string, Record<string, ShapeOption[]>> = {
+    'Nhà phố': {
+        'Hiện đại (Modern Style)': [
+            { id: 'hien_dai_do_thi', name: '1. Hiện đại đô thị – Phổ biến nhất (Khuyên dùng)', description: 'Khối hộp hiện đại vuông vức, bố cục lùi – tiến theo tầng, mặt tiền phẳng rõ mảng khối, ban công vừa phải kết hợp lam che nắng, cửa kính lớn + giếng trời thông gió, vật liệu kính – bê tông – lam nhôm màu trung tính.', context: 'Modern urban townhouse, cubic form, staggered floors, flat facade, modest balcony with louvers, large glass windows, neutral tones.', group: 'Phương án thiết kế (Design Concept)' },
+            { id: 'hien_dai_xanh', name: '2. Hiện đại xanh – Gần gũi thiên nhiên', description: 'Khối nhà hiện đại mềm hóa bằng ban công xanh, tầng trên đua tạo bóng mát, mặt tiền nhiều lớp với lam và cây xanh, logia thông thoáng – giếng trời giữa nhà, vật liệu bê tông – kính kết hợp gỗ và mảng xanh.', context: 'Green modern townhouse, biophilic design, cantilevered upper floor for shading, layered facade with greenery, airy loggia, concrete-glass-wood material palette.', group: 'Phương án thiết kế (Design Concept)' },
+            { id: 'hien_dai_toi_gian', name: '3. Hiện đại tối giản – Ít chi tiết', description: 'Khối hộp đơn giản, hình khối gọn gàng không giật cấp mạnh, mặt tiền phẳng tối giản chi tiết, ban công nhỏ hoặc ẩn, thông gió bằng ô thoáng đứng và giếng trời, vật liệu bê tông sơn mịn – kính khung mảnh – màu đơn sắc.', context: 'Minimalist modern townhouse, simple geometric box, clean structural lines, flat facade, hidden or small balcony, vertical ventilation slots, smooth painted concrete, monochrome palette.', group: 'Phương án thiết kế (Design Concept)' },
+            { id: 'hien_dai_nhiet_doi', name: '4. Hiện đại nhiệt đới – Phù hợp khí hậu Việt Nam', description: 'Khối nhà hiện đại có mái đua và ban công sâu, mặt tiền nhiều lớp che nắng mưa, lam đứng hoặc lam ngang bao che, thông gió tự nhiên đa hướng với giếng trời và khe gió, vật liệu bê tông – gỗ – đá tự nhiên – cây xanh.', context: 'Modern tropical townhouse, deep overhanging eaves, deep balconies, multi-layered facade for weather protection, vertical/horizontal cooling louvers, natural ventilation, concrete-wood-stone materials.', group: 'Phương án thiết kế (Design Concept)' },
+            { id: 'hien_dai_cao_tang', name: '5. Hiện đại cao tầng – Nhà phố 4–6 tầng', description: 'Khối hộp cao tầng nhấn mạnh chiều đứng, bố cục lùi tầng trên tạo nhẹ khối, mặt tiền chia mảng theo tầng rõ ràng, ban công nhỏ gọn kết hợp lan can kính, thông gió bằng cửa kính lớn và ô thoáng đứng, vật liệu kính – bê tông – kim loại hiện đại.', context: 'High-rise modern townhouse (4-6 floors), vertical emphasis, stepped-back upper floors, clear floor segmentation, compact glass balconies, large glass doors, modern metal-concrete-glass materials.', group: 'Phương án thiết kế (Design Concept)' },
+            { id: 'hien_dai_sang_trong', name: '6. Hiện đại sang trọng – Nhà phố cao cấp', description: 'Khối nhà vuông vức tỉ lệ lớn, mặt tiền nhấn khối mạnh và vật liệu cao cấp, ban công kính hoặc logia ẩn, thông gió kín đáo qua giếng trời và khe kỹ thuật, vật liệu đá ốp – kính lớn – kim loại hoàn thiện cao cấp.', context: 'Luxury modern townhouse, large monolithic proportions, bold massing, high-end materials, hidden loggia or glass balcony, discreet ventilation, stone cladding, large glass panels, premium metal finishes.', group: 'Phương án thiết kế (Design Concept)' }
+        ]
+    }
+};
 
 const STAGING_CONFIG = [
     { type: 'Phòng Khách', items: ['Sofa', 'Bàn trà', 'Kệ TV', 'Thảm', 'Đèn decor', 'Tranh'] },
     { type: 'Phòng Ngủ', items: ['Giường', 'Tủ đầu giường', 'Bàn phấn', 'Rèm', 'Tủ áo'] },
     { type: 'Phòng Bếp', items: ['Bàn ăn', 'Tủ bếp', 'Đèn thả', 'Thiết bị bếp'] },
 ];
+interface ColorPalette {
+    id: string;
+    name: string;
+    description: string;
+    components: string; // e.g. "Trắng sứ (Chủ đạo) – Ghi xám (Phụ) – Gỗ nhựa (Nhấn)"
+}
+
+const COLOR_MAPPING: Record<string, ColorPalette[]> = {
+    'Hiện đại (Modern Style)': [
+        { id: 'trang_su_ghi_xam', name: 'Trắng Sứ & Ghi Xám (Khuyên dùng)', description: 'Hiện đại, sạch sẽ, bền màu với thời gian.', components: 'Trắng sứ (Chủ đạo) – Ghi xám (Phụ) – Đen/Gỗ nhựa (Nhấn)' },
+        { id: 'tuong_phan_manh', name: 'Tương Phản Mạnh Mẽ', description: 'Cá tính, làm nổi bật đường nét kiến trúc.', components: 'Trắng (Chủ đạo) – Xám đậm (Phụ) – Nâu gỗ cam (Nhấn)' },
+        { id: 'tone_tram', name: 'Tone Trầm Sang Trọng', description: 'Ấm cúng, cao cấp, ít bị lộ vết bẩn.', components: 'Be/Kem (Chủ đạo) – Nâu đất (Phụ) – Kim loại đồng/Vàng (Nhấn)' },
+    ],
+    'Nhiệt đới Hiện đại (Modern Tropical)': [
+        { id: 'nhiet_doi_tuoi_moi', name: 'Nhiệt Đới Tươi Mới (Khuyên dùng)', description: 'Mát mẻ, hài hòa tuyệt đối với cây xanh.', components: 'Trắng kem (Chủ đạo) – Xám đá tự nhiên (Phụ) – Xanh lá/Gỗ sáng (Nhấn)' },
+        { id: 'moc_mac_tu_nhien', name: 'Mộc Mạc Tự Nhiên (Raw Nature)', description: 'Gần gũi, thư giãn như resort.', components: 'Bê tông trần (Chủ đạo) – Gỗ Teak (Phụ) – Đá ong xám (Nhấn)' },
+        { id: 'dat_nung_am_ap', name: 'Đất Nung Ấm Áp (Terracotta)', description: 'Độc đáo, có chiều sâu văn hóa bản địa.', components: 'Màu ngói/Đất nung (Chủ đạo) – Xám nhẹ (Phụ) – Gỗ tối màu (Nhấn)' },
+    ],
+    'Tối giản (Minimalism / Japandi)': [
+        { id: 'trang_su_tinh_khiet', name: 'Trắng Sứ Tinh Khiết (Khuyên dùng)', description: 'Gọn gàng, giúp nhà trông rộng hơn.', components: 'Trắng sứ (Chủ đạo) – Gỗ sồi sáng (Phụ) – Xám nhạt (Nhấn)' },
+        { id: 'be_cat_nhe_nhang', name: 'Be Cát Nhẹ Nhàng (Sandy Beige)', description: 'Ấm áp, bình yên, dịu mắt dưới nắng gắt.', components: 'Be cát (Chủ đạo) – Trắng kem (Phụ) – Nâu nhạt (Nhấn)' },
+        { id: 'xam_xi_mang', name: 'Xám Xi Măng Chất (Concrete)', description: 'Mộc mạc, cá tính ngầm cho gia chủ trẻ.', components: 'Xám xi măng (Chủ đạo) – Gỗ tối (Phụ) – Đen mờ (Nhấn)' },
+    ],
+    'Tân cổ điển Hiện đại (Neo-Classic)': [
+        { id: 'trang_su_sang_trong', name: 'Trắng Sứ Sang Trọng (Khuyên dùng)', description: 'Kinh điển, thanh lịch mãi mãi, tôn phào chỉ.', components: 'Trắng sứ (Chủ đạo) – Trắng kem (Phụ) – Đen/Vàng kim (Nhấn)' },
+        { id: 'vang_kem_hoang_gia', name: 'Vàng Kem Hoàng Gia', description: 'Ấm cúng, bề thế, vượng khí.', components: 'Vàng kem (Chủ đạo) – Trắng (Phụ) – Nâu đậm (Nhấn)' },
+        { id: 'ghi_xam_thanh_lich', name: 'Ghi Xám Thanh Lịch', description: 'Tân cổ điển pha hơi hướng hiện đại, trầm ổn.', components: 'Xám ghi sáng (Chủ đạo) – Trắng (Phụ) – Xanh than/Đen (Nhấn)' },
+    ],
+    'Tối giản bo cong (Minimal Curved / Japandi–Mediterranean Mix)': [
+        { id: 'trang_su_am', name: 'Trắng sứ ấm (Warm White / Off-white)', description: 'Màu trắng ấm tinh tế, sang trọng, mang lại cảm giác thư thái.', components: 'Trắng sứ ấm (Chủ đạo) – Be nhạt (Phụ) – Gỗ sáng (Nhấn)' },
+        { id: 'trang_go_sang', name: 'Trắng + Gỗ sáng (Oak / Teak)', description: 'Kết hợp mộc mạc và hiện đại, tạo điểm nhấn ấm áp.', components: 'Trắng (Chủ đạo) – Gỗ sồi/Teak (Phụ) – Đen/Kim loại (Nhấn)' },
+        { id: 'trang_be_cat', name: 'Trắng + Be Cát / Kem Nhạt', description: 'Hài hòa, nhẹ nhàng, đậm chất Địa Trung Hải hiện đại.', components: 'Trắng (Chủ đạo) – Be cát (Phụ) – Nâu nhạt (Nhấn)' },
+        { id: 'trang_xam_light', name: 'Trắng + Xám Very Light', description: 'Tối giản, thanh lịch, hiện đại và sạch sẽ.', components: 'Trắng (Chủ đạo) – Xám rất nhạt (Phụ) – Đen (Nhấn)' },
+    ]
+};
+
 
 const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEditRequest: (imageUrl: string) => void; isStandalone?: boolean; }> = ({ task, onBack, onEditRequest, isStandalone }) => {
     const [sourceImage1, setSourceImage1] = useState<SourceImage | null>(null);
@@ -161,7 +251,52 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
     const [floors, setFloors] = useState('');
     const [selectedHouseType, setSelectedHouseType] = useState('');
     const [selectedFacadeStyle, setSelectedFacadeStyle] = useState('');
-    const [hasGate, setHasGate] = useState(false);
+    
+    // Shape Characteristics State (Design Concepts)
+    const [selectedShape, setSelectedShape] = useState<string>('');
+    const [availableShapes, setAvailableShapes] = useState<ShapeOption[]>([]);
+
+    // Color Palette State
+    const [selectedColorPalette, setSelectedColorPalette] = useState<ColorPalette | null>(null);
+    const [availableColorPalettes, setAvailableColorPalettes] = useState<ColorPalette[]>([]);
+
+    // Material Options State
+    const [materialOptions, setMaterialOptions] = useState<MaterialOption[]>([]);
+    const [isAnalyzingMaterialsSuggestions, setIsAnalyzingMaterialsSuggestions] = useState(false);
+    const [selectedMaterial, setSelectedMaterial] = useState<MaterialOption | null>(null);
+
+    const [availableStyles, setAvailableStyles] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (selectedHouseType && HOUSE_TYPE_STYLES_MAPPING[selectedHouseType]) {
+            setAvailableStyles(HOUSE_TYPE_STYLES_MAPPING[selectedHouseType]);
+            setSelectedFacadeStyle(''); // Reset style when type changes
+        } else {
+            setAvailableStyles([]);
+            setSelectedFacadeStyle('');
+        }
+    }, [selectedHouseType]);
+
+    // Update Available Shapes and Colors when Style Changes
+    useEffect(() => {
+        // Shapes
+        if (selectedHouseType && selectedFacadeStyle && SHAPE_MAPPING[selectedHouseType]?.[selectedFacadeStyle]) {
+            setAvailableShapes(SHAPE_MAPPING[selectedHouseType][selectedFacadeStyle]);
+            setSelectedShape('');
+        } else {
+            setAvailableShapes([]);
+            setSelectedShape('');
+        }
+
+        // Colors
+        if (selectedFacadeStyle && COLOR_MAPPING[selectedFacadeStyle]) {
+            setAvailableColorPalettes(COLOR_MAPPING[selectedFacadeStyle]);
+            setSelectedColorPalette(null);
+        } else {
+            setAvailableColorPalettes([]);
+            setSelectedColorPalette(null);
+        }
+    }, [selectedHouseType, selectedFacadeStyle]);
 
     const sourceCanvasRef = useRef<HTMLCanvasElement>(null);
     const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -188,29 +323,42 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
         }
     }, [sourceImage1, task.id]);
 
-    useEffect(() => {
-        if (task.id === 'facade_from_land' && sourceImage1 && floors && selectedHouseType && selectedFacadeStyle && !isAnalyzing) {
-            const timeoutId = setTimeout(async () => {
-                setIsAnalyzing(true);
-                try {
-                    const enhancedPrompt = await analyzeFacadeFromLand(sourceImage1, {
-                        houseType: selectedHouseType,
-                        style: selectedFacadeStyle,
-                        floors: floors,
-                        hasGate: hasGate
-                    });
-                    setPrompt(enhancedPrompt);
-                } catch (e) {
-                    console.error(e);
-                    // Fallback to basic prompt if AI fails
-                    setPrompt(`Thiết kế mặt tiền ${selectedHouseType} phong cách ${selectedFacadeStyle}, quy mô ${floors} tầng. Phối cảnh 3D chân thực.`);
-                }
-                setIsAnalyzing(false);
-            }, 1000); // 1s debounce
-
-            return () => clearTimeout(timeoutId);
+    const handleAnalyzeMaterials = async () => {
+        if (!sourceImage1 || !selectedHouseType || !selectedFacadeStyle || !floors) return;
+        
+        setIsAnalyzingMaterialsSuggestions(true);
+        try {
+            const options = await analyzeMaterialsForFacade(sourceImage1, {
+                houseType: selectedHouseType,
+                style: selectedFacadeStyle,
+                floors: floors,
+                colorPalette: selectedColorPalette ? { name: selectedColorPalette.name, components: selectedColorPalette.components } : undefined
+            });
+            setMaterialOptions(options);
+            setSelectedMaterial(null);
+            setPrompt(''); // Clear prev prompt
+        } catch (e) {
+            console.error(e);
         }
-    }, [sourceImage1, selectedHouseType, selectedFacadeStyle, floors, hasGate, task.id]);
+        setIsAnalyzingMaterialsSuggestions(false);
+    };
+
+    useEffect(() => {
+        if (selectedMaterial && sourceImage1) {
+            // Color: Only use name, skip verbose components
+            const colorText = selectedColorPalette ? `Tông màu: ${selectedColorPalette.name.split(' (')[0]}. ` : '';
+            // Material: from AI analysis
+            const materialText = `Vật liệu: ${selectedMaterial.materials}. `;
+            // Design keywords: from AI analysis
+            const designText = selectedMaterial.designKeywords ? `Đặc điểm: ${selectedMaterial.designKeywords}. ` : '';
+            // Gate design: from AI analysis
+            const gateText = selectedMaterial.gateDesign ? `Cổng nhà: ${selectedMaterial.gateDesign}. ` : '';
+            
+            const fixedPrompt = `Mặt tiền ${selectedHouseType} ${selectedFacadeStyle}, ${floors} tầng. ${colorText}${materialText}${designText}${gateText}Giữ nguyên cảnh quan xung quanh.`;
+            
+            setPrompt(fixedPrompt);
+        }
+    }, [selectedMaterial, sourceImage1, selectedHouseType, selectedFacadeStyle, floors, selectedShape, selectedColorPalette]);
 
     useEffect(() => {
         if (task.id === 'change_material' && sourceImage1 && sourceImage2 && !prompt && !isAnalyzing) {
@@ -404,30 +552,76 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
                                                 value={selectedFacadeStyle} 
                                                 onChange={(e) => setSelectedFacadeStyle(e.target.value)}
                                                 className="w-full bg-white border border-slate-200 px-3 py-2 rounded text-sm focus:ring-1 focus:ring-brand outline-none"
+                                                disabled={!selectedHouseType}
                                             >
-                                                <option value="">Chọn phong cách...</option>
-                                                {FACADE_STYLES.map(style => <option key={style} value={style}>{style}</option>)}
+                                                <option value="">{selectedHouseType ? 'Chọn phong cách...' : 'Chọn loại nhà trước...'}</option>
+                                                {availableStyles.map(style => <option key={style} value={style}>{style}</option>)}
                                             </select>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between bg-white border border-slate-200 px-4 py-3 rounded-lg shadow-sm">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`p-1.5 rounded-md ${hasGate ? 'bg-brand/10 text-brand' : 'bg-slate-100 text-slate-400'}`}>
-                                                <Icon name="home" className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-slate-700">Có cổng nhà</p>
-                                                <p className="text-[10px] text-slate-400">Thiết kế cổng phù hợp mặt tiền</p>
-                                            </div>
+
+
+                                    {availableColorPalettes.length > 0 && (
+                                        <div className="animate-in fade-in slide-in-from-top-3 duration-300">
+                                            <label className="text-[10px] text-slate-500 font-bold uppercase mb-1 block">Màu sắc mặt tiền</label>
+                                            <select 
+                                                value={selectedColorPalette ? selectedColorPalette.name : ""} 
+                                                onChange={(e) => {
+                                                    const selected = availableColorPalettes.find(c => c.name === e.target.value);
+                                                    setSelectedColorPalette(selected || null);
+                                                }}
+                                                className="w-full bg-white border border-slate-200 px-3 py-2 rounded text-sm focus:ring-1 focus:ring-brand outline-none"
+                                            >
+                                                <option value="">-- Mặc định --</option>
+                                                {availableColorPalettes.map(palette => (
+                                                    <option key={palette.id} value={palette.name}>
+                                                        {palette.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {selectedColorPalette && (
+                                                <div className="mt-2 bg-slate-50 p-2 rounded border border-slate-100">
+                                                    <p className="text-[10px] font-bold text-slate-600 mb-0.5">{selectedColorPalette.components}</p>
+                                                    <p className="text-[10px] text-slate-400 italic">{selectedColorPalette.description}</p>
+                                                </div>
+                                            )}
                                         </div>
-                                        <button 
-                                            onClick={() => setHasGate(!hasGate)}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${hasGate ? 'bg-brand' : 'bg-slate-200'}`}
-                                        >
-                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${hasGate ? 'translate-x-6' : 'translate-x-1'}`} />
-                                        </button>
-                                    </div>
+                                    )}
+
+
+                                    {sourceImage1 && floors && selectedHouseType && selectedFacadeStyle && (
+                                        <div className="mt-6 space-y-4 pt-4 border-t border-slate-200">
+                                            <button 
+                                                onClick={handleAnalyzeMaterials}
+                                                disabled={isAnalyzingMaterialsSuggestions}
+                                                className="w-full py-3 bg-white border-2 border-brand text-brand font-bold rounded-xl hover:bg-brand-light transition-all flex items-center justify-center gap-2 group"
+                                            >
+                                                {isAnalyzingMaterialsSuggestions ? <div className="animate-spin h-4 w-4 border-2 border-brand border-t-transparent rounded-full" /> : <Icon name="sparkles" className="w-4 h-4 group-hover:animate-pulse" />}
+                                                PHÂN TÍCH PHƯƠNG ÁN VẬT LIỆU
+                                            </button>
+
+                                            {materialOptions.length > 0 && (
+                                                <div className="grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                    <label className="text-[10px] text-slate-500 font-bold uppercase block mb-1">Chọn cấp độ vật liệu (Bắt buộc):</label>
+                                                    {materialOptions.map(opt => (
+                                                        <div 
+                                                            key={opt.id}
+                                                            onClick={() => setSelectedMaterial(opt)}
+                                                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all relative ${selectedMaterial?.id === opt.id ? 'border-brand bg-brand-light shadow-md' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                                                        >
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <h4 className={`text-sm font-bold ${selectedMaterial?.id === opt.id ? 'text-brand' : 'text-slate-700'}`}>{opt.title}</h4>
+                                                                {selectedMaterial?.id === opt.id && <Icon name="x-circle" className="w-5 h-5 text-brand rotate-45" />}
+                                                            </div>
+                                                            <p className="text-[10px] text-slate-500 mb-2 leading-relaxed">{opt.materials}</p>
+                                                            <p className="text-[9px] text-slate-400 italic">"{opt.description}"</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -462,7 +656,11 @@ const UtilityRunner: React.FC<{ task: UtilityTaskDef; onBack: () => void; onEdit
                             </div>
                         </div>
                     </Section>
-                    <button onClick={handleGenerate} disabled={isLoading || isAnalyzing || !sourceImage1} className="w-full bg-brand hover:bg-brand-hover text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 disabled:bg-slate-200 disabled:text-slate-500 flex items-center justify-center gap-2 transition-all">
+                     <button 
+                        onClick={handleGenerate} 
+                        disabled={isLoading || isAnalyzing || !sourceImage1 || (task.id === 'facade_from_land' && !selectedMaterial)} 
+                        className="w-full bg-brand hover:bg-brand-hover text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 disabled:bg-slate-200 disabled:text-slate-500 flex items-center justify-center gap-2 transition-all"
+                    >
                         <Icon name="sparkles" className="w-5 h-5" />
                         {isLoading ? "Đang tạo Render..." : "Bắt đầu Render"}
                     </button>

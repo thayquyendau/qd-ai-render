@@ -156,9 +156,88 @@ export const describeInteriorImage = async (sourceImage: SourceImage): Promise<s
   return response.text?.trim() || '';
 };
 
+
+export interface MaterialOption {
+    id: string;
+    title: string;
+    materials: string;
+    designKeywords: string;
+    gateDesign: string;
+    description: string;
+}
+
+export const analyzeMaterialsForFacade = async (
+    sourceImage: SourceImage,
+    data: { 
+        houseType: string; 
+        style: string; 
+        floors: string; 
+        colorPalette?: { name: string; components: string };
+    }
+): Promise<MaterialOption[]> => {
+    const ai = getGenAI();
+    const engineeredPrompt = `
+      Bạn là một kiến trúc sư chủ trì và dự toán viên. 
+      DỰ KIẾN XÂY DỰNG:
+      - Loại nhà: ${data.houseType}
+      - Phong cách: ${data.style}
+      - Quy mô: ${data.floors} tầng
+      - Tông màu: ${data.colorPalette?.name || 'Theo phong cách'} (${data.colorPalette?.components || ''})
+
+      NHIỆM VỤ:
+      Dựa trên ảnh hiện trạng khu đất và yêu cầu thiết kế, hãy đề xuất 3 phương án hoàn thiện mặt tiền theo 3 cấp độ: 
+      1. Tiết kiệm: Vật liệu phổ biến, tối ưu chi phí.
+      2. Trung bình: Vật liệu bền đẹp, phổ thông.
+      3. Cao cấp: Vật liệu sang trọng, đẳng cấp.
+
+      MỖI PHƯƠNG ÁN CẦN BAO GỒM:
+      - materials: Danh sách vật liệu chính
+      - designKeywords: Từ khóa thiết kế đặc trưng (hình khối, ánh sáng, cây xanh...)
+      - gateDesign: Thiết kế cổng nhà phù hợp với phong cách và vật liệu
+
+      YÊU CẦU TRẢ VỀ:
+      Chỉ trả về duy nhất một mảng JSON (không có markdown, không có giải thích) với cấu trúc sau:
+      [
+        { "id": "cheap", "title": "Tiết kiệm", "materials": "...", "designKeywords": "...", "gateDesign": "...", "description": "..." },
+        { "id": "medium", "title": "Trung bình", "materials": "...", "designKeywords": "...", "gateDesign": "...", "description": "..." },
+        { "id": "premium", "title": "Cao cấp", "materials": "...", "designKeywords": "...", "gateDesign": "...", "description": "..." }
+      ]
+    `;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: {
+            parts: [
+                { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+                { text: engineeredPrompt }
+            ]
+        }
+    });
+    
+    const text = response.text?.trim().replace(/```json|```/g, "") || "[]";
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("Failed to parse material JSON:", e);
+        return [
+            { id: "cheap", title: "Tiết kiệm", materials: "Sơn nước, gạch ceramic, nhôm kính thường", designKeywords: "Bo góc tròn đơn giản, cửa sổ hình chữ nhật, đèn treo cổ điển", gateDesign: "Cổng sắt hộp sơn tĩnh điện, kiểu dáng đơn giản", description: "Tối ưu chi phí xây dựng." },
+            { id: "medium", title: "Trung bình", materials: "Sơn giả đá, gạch inax, cửa xingfa, gỗ nhựa", designKeywords: "Tường uốn cong nhẹ, vòm cung cửa chính, đèn LED viền, cây xanh ban công", gateDesign: "Cổng nhôm đúc vòm cung, ốp gỗ nhựa composite, đèn cột trang trí", description: "Cân bằng giữa thẩm mỹ và độ bền." },
+            { id: "premium", title: "Cao cấp", materials: "Ốp đá tự nhiên, gỗ Teak, kính Low-E, nhôm cao cấp", designKeywords: "Mặt tiền điêu khắc organic, ô tròn cutout xuyên sáng, đèn wall-washer, cây rủ từ ban công, lam gỗ sân thượng", gateDesign: "Cổng gỗ tự nhiên vòm arched, đèn LED viền ẩn, tường rào ốp đá tự nhiên", description: "Sang trọng, đẳng cấp và bền bỉ." }
+        ];
+    }
+};
+
 export const analyzeFacadeFromLand = async (
   sourceImage: SourceImage,
-  data: { houseType: string; style: string; floors: string; hasGate?: boolean }
+  data: { 
+      houseType: string; 
+      style: string; 
+      floors: string; 
+      hasGate?: boolean;
+      shapeCharacteristics?: { name: string; description: string; context: string };
+      colorPalette?: { name: string; description: string; components: string };
+      selectedMaterial?: MaterialOption;
+  }
 ): Promise<string> => {
   const ai = getGenAI();
   const engineeredPrompt = `
@@ -167,15 +246,17 @@ export const analyzeFacadeFromLand = async (
     - Loại nhà: ${data.houseType}
     - Phong cách: ${data.style}
     - Quy mô: ${data.floors} tầng
+    ${data.shapeCharacteristics ? `- Đặc điểm hình khối / Concept: ${data.shapeCharacteristics.name}` : ''}
+    ${data.colorPalette ? `- Màu sắc chủ đạo: ${data.colorPalette.name} (${data.colorPalette.components})` : ''}
+    ${data.selectedMaterial ? `- Gói vật liệu: ${data.selectedMaterial.title} (${data.selectedMaterial.materials})` : ''}
     ${data.hasGate ? '- Yêu cầu đặc biệt: Thiết kế thêm CỔNG NHÀ đẹp, phù hợp với phong cách mặt tiền.' : ''}
 
     NHIỆM VỤ:
     1. XÁC ĐỊNH RANH GIỚI TỰ ĐỘNG: Phân tích ảnh hiện trạng để xác định chính xác ranh giới vỉa hè và lề đường phía trước khu đất.
     2. CHIẾN LƯỢC CĂN LỀ TUYỆT ĐỐI (QUAN TRỌNG NHẤT): 
-       - Nếu ${data.hasGate ? 'có cổng: Phải đặt cổng và hàng rào sát lề đường.' : 'KHÔNG CÓ CỔNG: BẮT BUỘC mặt tiền tầng trệt của ngôi nhà PHẢI ĐẶT SÁT SẠT VÀO LỀ ĐƯỜNG/VỈA HÈ. Tuyệt đối KHÔNG ĐƯỢC để bất kỳ khoảng đất trống, sân cỏ hay bất cứ thứ gì thụt vào phía trước mặt tiền. Ngôi nhà phải mọc lên ngay tại ranh giới bắt đầu của đất.'}
-    3. TỰ ĐỘNG KHỚP TỈ LỆ: AI Render phải tự điều chỉnh kích thước ngôi nhà mới sao cho vừa vặn và chính xác tuyệt đối với khu đất, không bị lệch hay hở ranh giới.
-    4. GIỮ NGUYÊN HIỆN TRẠNG XUNG QUANH: Yêu cầu AI Render phải giữ lại toàn bộ các yếu tố môi trường như: nhà hàng xóm hai bên, cây xanh hiện hữu, con đường phía trước.
-    5. VIẾT PROMPT: Tạo 1 prompt tiếng Việt chi tiết cưỡng chế AI đặt ngôi nhà ${data.houseType} ${data.style} vào đúng vị trí sát vỉa hè. ${data.hasGate ? 'Mô tả cổng nhà sát lề đường.' : 'BẮT BUỘC: Mặt tiền nhà phải dán chặt vào mép vỉa hè, không có sân trước, không có khoảng thụt.'}
+       - Nếu ${data.hasGate ? 'có cổng: Phải đặt cổng và hàng rào sát lề đường.' : 'KHÔNG CÓ CỔNG: BẮT BUỘC mặt tiền tầng trệt của ngôi nhà PHẢI ĐẶT SÁT SẠT VÀO LỀ ĐƯỜNG/VỈA HÈ.'}
+    3. VIẾT PROMPT: Tạo 1 prompt tiếng Việt chi tiết cưỡng chế AI đặt ngôi nhà ${data.houseType} ${data.style} vào đúng vị trí sát vỉa hè.
+    4. YÊU CẦU CỐ ĐỊNH: Giữ nguyên hiện trạng xung quanh bên ngoài khu đất. Phối cảnh 3D chân thực, ánh sáng tự nhiên.
 
     CHỈ TRẢ VỀ CHUỖI VĂN BẢN TIẾNG VIỆT LÀ NỘI DUNG PROMPT HOÀN CHỈNH ĐỂ GỬI CHO AI RENDER.
   `;
