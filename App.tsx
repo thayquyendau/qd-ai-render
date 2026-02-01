@@ -550,12 +550,12 @@ export default function App() {
   const [standaloneTaskId, setStandaloneTaskId] = useState<string | null>(null);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
-  // Check API Key on mount
+  // Check API Key on mount - Disabled as we now have a hardcoded key
   useEffect(() => {
-    const key = getApiKey();
-    if (!key) {
-      setIsApiKeyModalOpen(true);
-    }
+    // const key = getApiKey();
+    // if (!key) {
+    //   setIsApiKeyModalOpen(true);
+    // }
   }, []);
 
   const [imageForEditing, setImageForEditing] = useState<SourceImage | null>(
