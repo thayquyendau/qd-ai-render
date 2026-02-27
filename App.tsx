@@ -535,8 +535,7 @@ const TabButton: React.FC<{
   );
 };
 
-import { ApiKeyModal } from "./components/ApiKeyModal";
-import { getApiKey } from "./services/geminiService";
+
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<
@@ -548,15 +547,7 @@ export default function App() {
     | "utilities"
   >("exterior");
   const [standaloneTaskId, setStandaloneTaskId] = useState<string | null>(null);
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
-  // Check API Key on mount - Disabled as we now have a hardcoded key
-  useEffect(() => {
-    // const key = getApiKey();
-    // if (!key) {
-    //   setIsApiKeyModalOpen(true);
-    // }
-  }, []);
 
   const [imageForEditing, setImageForEditing] = useState<SourceImage | null>(
     null,
@@ -736,19 +727,13 @@ export default function App() {
 
   const handleHandleError = useCallback(async (error: any) => {
     console.error("API Error:", error);
-    if (
-      error?.message?.includes("API_KEY_MISSING") ||
-      error?.message?.includes("API_KEY") ||
-      error?.message?.includes("403")
-    ) {
-      setIsApiKeyModalOpen(true);
-    } else if (error?.message?.includes("Requested entity was not found")) {
-      // This typically means the model doesn't exist or key lacks permission
-      setIsApiKeyModalOpen(true);
+    const msg = error?.message || "Lỗi không xác định";
+    if (msg.includes("403") || msg.includes("API_KEY")) {
+      alert("API Key đã hết quota hoặc chưa bật billing. Vui lòng kiểm tra lại trên Google AI Studio.");
+    } else if (msg.includes("Requested entity was not found")) {
+      alert("Model AI không tồn tại hoặc chưa được hỗ trợ. Vui lòng thử lại sau.");
     } else {
-      alert(
-        `Đã xảy ra lỗi khi tạo ảnh. Chi tiết: ${error?.message || "Lỗi không xác định"}. Vui lòng thử lại.`,
-      );
+      alert(`Đã xảy ra lỗi: ${msg}. Vui lòng thử lại.`);
     }
   }, []);
 
@@ -1450,11 +1435,7 @@ export default function App() {
           onClose={() => setUpscaledImageForModal(null)}
         />
       )}
-      <ApiKeyModal
-        isOpen={isApiKeyModalOpen}
-        onClose={() => {}}
-        onSuccess={() => setIsApiKeyModalOpen(false)}
-      />
+
     </div>
   );
 }

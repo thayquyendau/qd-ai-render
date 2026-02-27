@@ -14,10 +14,9 @@ const extractBase64Image = (response: any): string | null => {
   return null;
 };
 
-// Helper to get the API Key (Hardcoded -> Local Storage -> Env)
+// Helper to get the API Key from environment variables
 export const getApiKey = (): string | null => {
-  // Hardcoded key as per user request
-  return "AIzaSyCUJYRiI7t_vFzaX0HgZn6YORqzEkyG9Yg";
+  return process.env.GEMINI_API_KEY || null;
 };
 
 // Helper to get GoogleGenAI instance
